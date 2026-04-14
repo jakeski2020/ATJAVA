@@ -1,57 +1,42 @@
 package mow;
-
 public class Yard {
     public char[][] yard;
-
-    public Yard(int height, int width) {
-        if (height < 1 || width < 1) {
-            throw new IllegalArgumentException("Height and width must be at least 1.");
-        }
-
-        int totalRows = height + 2;
-        int totalCols = width + 2;
-        yard = new char[totalRows][totalCols];
-
-        for (int row = 0; row < totalRows; row++) {
-            for (int col = 0; col < totalCols; col++) {
-                boolean boundary = row == 0 || row == totalRows - 1 || col == 0 || col == totalCols - 1;
-                yard[row][col] = boundary ? 'R' : '+';
+    public Yard(int lawnHeight, int lawnWidth) {
+        int totalHeight = lawnHeight + 2;
+        int totalWidth  = lawnWidth + 2;
+        yard = new char[totalHeight][totalWidth];
+        for (int i = 0; i < totalHeight; i++) {
+            for (int j = 0; j < totalWidth; j++) {
+                if (i == 0 || i == totalHeight - 1 || j == 0 || j == totalWidth - 1) {
+                    yard[i][j] = 'R';
+                } else {
+                    yard[i][j] = '+';
+                }
             }
         }
     }
-
-    public char getCell(int row, int column) {
-        return yard[row][column];
+    public char getCell(int row, int col) {
+        return yard[row][col];
     }
-
-    public void setCell(int row, int column, char value) {
-        yard[row][column] = value;
+    public void setCell(int row, int col, char value) {
+        yard[row][col] = value;
     }
-
-    public int getHeight() {
+    public int getLawnHeight() {
         return yard.length - 2;
     }
-
-    public int getWidth() {
+    public int getLawnWidth() {
         return yard[0].length - 2;
     }
-
-    public void printYard() {
-        for (char[] row : yard) {
-            for (char cell : row) {
-                System.out.print(cell);
-            }
-            System.out.println();
-        }
+    public void print() {
+        print(null);
     }
-
-    public void printYard(Mower mower) {
-        for (int rowIndex = 0; rowIndex < yard.length; rowIndex++) {
-            for (int colIndex = 0; colIndex < yard[rowIndex].length; colIndex++) {
-                if (rowIndex == mower.getRow() && colIndex == mower.getColumn()) {
-                    System.out.print(mower.getDirectionSymbol());
+    public void print(Mower mower) {
+        for (int i = 0; i < yard.length; i++) {
+            for (int j = 0; j < yard[0].length; j++) {
+                if (mower != null && mower.getRow() == i && mower.getCol() == j) {
+                    System.out.print(mower.getDirectionChar());
                 } else {
-                    System.out.print(yard[rowIndex][colIndex]);
+                    System.out.print(yard[i][j]);
                 }
             }
             System.out.println();

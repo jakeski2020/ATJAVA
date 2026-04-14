@@ -1,189 +1,130 @@
 package mow;
-
 import java.util.Random;
-
 public class Mower {
-    private static final Random RANDOM = new Random();
-    private static final int[] ROW_DELTAS = {-1, 0, 1, 0};
-    private static final int[] COL_DELTAS = {0, 1, 0, -1};
-    private static final char[] DIRECTION_SYMBOLS = {'^', '>', 'v', '<'};
-
     private int row;
-    private int column;
+    private int col;
     private int direction;
-
-    public Mower() {
-        this.direction = 0;
+    public Mower(int row, int col, int direction) {
+        this.row = row;
+        this.col = col;
+        this.direction = direction;
     }
-
+    public int getRow() { return row; }
+    public void setRow(int row) { this.row = row; }
+    public int getCol() { return col; }
+    public void setCol(int col) { this.col = col; }
+    public int getDirection() { return direction; }
+    public void setDirection(int direction) { this.direction = direction; }
+    public void moveForward() {
+        if (direction == 0) row--;
+        else if (direction == 1) col++;
+        else if (direction == 2) row++;
+        else if (direction == 3) col--;
+    }
+    public void turnLeft() {
+        direction = (direction + 3) % 4;
+    }
+    public void turnRight() {
+        direction = (direction + 1) % 4;
+    }
+    public char senseForward(Yard yard) {
+        int nextRow = row;
+        int nextCol = col;
+        if (direction == 0) nextRow--;
+        else if (direction == 1) nextCol++;
+        else if (direction == 2) nextRow++;
+        else if (direction == 3) nextCol--;
+        return yard.getCell(nextRow, nextCol);
+    }
+    public char senseRight(Yard yard) {
+        int nextRow = row;
+        int nextCol = col;
+        int rightDir = (direction + 1) % 4;
+        if (rightDir == 0) nextRow--;
+        else if (rightDir == 1) nextCol++;
+        else if (rightDir == 2) nextRow++;
+        else if (rightDir == 3) nextCol--;
+        return yard.getCell(nextRow, nextCol);
+    }
+    public char senseLeft(Yard yard) {
+        int nextRow = row;
+        int nextCol = col;
+        int leftDir = (direction + 3) % 4;
+        if (leftDir == 0) nextRow--;
+        else if (leftDir == 1) nextCol++;
+        else if (leftDir == 2) nextRow++;
+        else if (leftDir == 3) nextCol--;
+        return yard.getCell(nextRow, nextCol);
+    }
+    public void cutGrass(Yard yard) {
+        yard.setCell(row, col, ' ');
+    }
+    public char getDirectionChar() {
+        if (direction == 0) return '^';
+        else if (direction == 1) return '>';
+        else if (direction == 2) return 'v';
+        else return '<';
+    }
     public void randomize(Yard yard) {
-        int height = yard.getHeight();
-        int width = yard.getWidth();
-
-        int corner = RANDOM.nextInt(4);
-        switch (corner) {
-            case 0 -> {
-                row = 1;
-                column = 1;
-            }
-            case 1 -> {
-                row = 1;
-                column = width;
-            }
-            case 2 -> {
-                row = height;
-                column = 1;
-            }
-            default -> {
-                row = height;
-                column = width;
-            }
-        }
-
-        direction = RANDOM.nextInt(4);
+        Random rand = new Random();
+        int lawnHeight = yard.getLawnHeight();
+        int lawnWidth  = yard.getLawnWidth();
+        int[][] corners = {
+            {1, 1},
+            {1, lawnWidth},
+            {lawnHeight, 1},
+            {lawnHeight, lawnWidth}
+        };
+        int[] corner = corners[rand.nextInt(4)];
+        row = corner[0];
+        col = corner[1];
+        direction = rand.nextInt(4);
     }
-
     public boolean updateMower(Yard yard) {
-        if (!hasUnmowed(yard)) {
+        cutGrass(yard);
+        if (!hasUnmowedGrass(yard)) {
             return false;
         }
-
-        if (yard.getCell(row, column) == '+') {
-            yard.setCell(row, column, ' ');
+        if (senseForward(yard) == '+') {
+            moveForward();
+            return true;
         }
-
-        int nextDirection = chooseNextDirection(yard);
-        if (nextDirection < 0) {
-            return false;
+        if (senseRight(yard) == '+') {
+            turnRight();
+            moveForward();
+            return true;
         }
-
-        direction = nextDirection;
-        row += ROW_DELTAS[direction];
-        column += COL_DELTAS[direction];
-        return true;
-    }
-
-    private int chooseNextDirection(Yard yard) {
-        int front = direction;
-        int right = (direction + 1) % 4;
-        int left = (direction + 3) % 4;
-        int back = (direction + 2) % 4;
-        int[] searchOrder = {front, right, left, back};
-
-        for (int candidate : searchOrder) {
-            int nextRow = row + ROW_DELTAS[candidate];
-            int nextCol = column + COL_DELTAS[candidate];
-            if (isUnmowed(yard, nextRow, nextCol)) {
-                return candidate;
+        if (senseLeft(yard) == '+') {
+            turnLeft();
+            moveForward();
+            return true;
+        }
+        turnRight();
+        turnRight();
+        if (senseForward(yard) == '+') {
+            moveForward();
+            return true;
+        }
+        for (int i = 1; i <= yard.getLawnHeight(); i++) {
+            for (int j = 1; j <= yard.getLawnWidth(); j++) {
+                if (yard.getCell(i, j) == '+') {
+                    row = i;
+                    col = j;
+                    return true;
+                }
             }
         }
 
-        for (int candidate : searchOrder) {
-            int nextRow = row + ROW_DELTAS[candidate];
-            int nextCol = column + COL_DELTAS[candidate];
-            if (isMovable(yard, nextRow, nextCol)) {
-                return candidate;
-            }
-        }
-
-        return -1;
+        return false;
     }
-
-    private boolean hasUnmowed(Yard yard) {
-        for (int r = 1; r <= yard.getHeight(); r++) {
-            for (int c = 1; c <= yard.getWidth(); c++) {
-                if (yard.getCell(r, c) == '+') {
+    private boolean hasUnmowedGrass(Yard yard) {
+        for (int i = 1; i <= yard.getLawnHeight(); i++) {
+            for (int j = 1; j <= yard.getLawnWidth(); j++) {
+                if (yard.getCell(i, j) == '+') {
                     return true;
                 }
             }
         }
         return false;
-    }
-
-    private boolean isInside(Yard yard, int row, int column) {
-        return row >= 0 && row < yard.yard.length && column >= 0 && column < yard.yard[0].length;
-    }
-
-    private boolean isMovable(Yard yard, int row, int column) {
-        return isInside(yard, row, column) && yard.getCell(row, column) != 'R';
-    }
-
-    private boolean isUnmowed(Yard yard, int row, int column) {
-        return isInside(yard, row, column) && yard.getCell(row, column) == '+';
-    }
-
-    public int getRow() {
-        return row;
-    }
-
-    public void setRow(int row) {
-        this.row = row;
-    }
-
-    public int getColumn() {
-        return column;
-    }
-
-    public void setColumn(int column) {
-        this.column = column;
-    }
-
-    public void setPosition(int row, int column) {
-        this.row = row;
-        this.column = column;
-    }
-
-    public int getDirection() {
-        return direction;
-    }
-
-    public void setDirection(int direction) {
-        if (direction < 0 || direction > 3) {
-            throw new IllegalArgumentException("Direction must be 0..3.");
-        }
-        this.direction = direction;
-    }
-
-    public void turnLeft() {
-        direction = (direction + 3) % 4;
-    }
-
-    public void turnRight() {
-        direction = (direction + 1) % 4;
-    }
-
-    public void moveForward() {
-        row += ROW_DELTAS[direction];
-        column += COL_DELTAS[direction];
-    }
-
-    public boolean isFrontGrass(Yard yard) {
-        int nextRow = row + ROW_DELTAS[direction];
-        int nextCol = column + COL_DELTAS[direction];
-        if (!isInside(yard, nextRow, nextCol)) {
-            return false;
-        }
-        return yard.getCell(nextRow, nextCol) == '+';
-    }
-
-    public boolean isFrontRedBrick(Yard yard) {
-        int nextRow = row + ROW_DELTAS[direction];
-        int nextCol = column + COL_DELTAS[direction];
-        if (!isInside(yard, nextRow, nextCol)) {
-            return false;
-        }
-        return yard.getCell(nextRow, nextCol) == 'R';
-    }
-
-    public boolean cutGrass(Yard yard) {
-        if (yard.getCell(row, column) == '+') {
-            yard.setCell(row, column, ' ');
-            return true;
-        }
-        return false;
-    }
-
-    public char getDirectionSymbol() {
-        return DIRECTION_SYMBOLS[direction];
     }
 }
